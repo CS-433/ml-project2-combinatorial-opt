@@ -24,7 +24,6 @@ def gen_samples(thetas: np.ndarray, size: int) -> np.ndarray:
     samples = np.zeros((size, len(thetas)))
     for idx, theta in enumerate(thetas):
        samples[:, idx] =  np.random.binomial(1,np.cos(theta)**2,size)
-
     return samples
 
 def gen_samples2(thetas: np.ndarray,size: int):
@@ -32,7 +31,6 @@ def gen_samples2(thetas: np.ndarray,size: int):
     samples = np.zeros((size, len(thetas)))
     for idx, theta in enumerate(thetas):
        samples[:, idx] =  jax.random.bernoulli(rng_key,jnp.cos(theta)**2,(size,))
-
     return samples
 
 def energy(s: np.ndarray((dim,1))) -> int:
@@ -40,7 +38,7 @@ def energy(s: np.ndarray((dim,1))) -> int:
 
 #s_gen is the 
 def loss(s_gen, shots: int) -> int:
-    return sum([energy(s_gen) for _ in range(shots)])
+    return jax.sum([energy(s_gen) for _ in range(shots)])
 
 def loss2(s_gen: np.ndarray)-> int:
     energies = np.zeros((s_gen.shape[0], 1))
@@ -49,6 +47,12 @@ def loss2(s_gen: np.ndarray)-> int:
     
     return np.sum(energies) / energies.shape[0]
 
+def loss3(s, shots: int) -> int:
+    s_batch = s_gen(shots)
+    return jax.sum([s.T@v_mat@s for s in s_batch])
+
+def s_gen(shots: int) -> np.ndarray((shots, dim)):
+    
 
 samples = gen_samples(thetas,10)
 print(loss2(samples))
