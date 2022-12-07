@@ -1,17 +1,17 @@
 import torch
 from torchvision import transforms
-
 import numpy as np
 import matplotlib.pyplot as plt
 
 class SimpleAutoregressiveModel(torch.nn.Module):
-    def __init__(self, *kwargs) -> None:
+    def __init__(self, **kwargs) -> None:
         super(SimpleAutoregressiveModel, self).__init__()
         self.layers = []
+        self.L = kwargs['L']
         self.width = kwargs['width']
         self.depth = kwargs['depth']
         self.device = kwargs['device']
-        self.n = kwargs['n']
+        self.n = self.L**2
 
         self.layers.append(MaskedLinear(
             in_features=1,
@@ -49,8 +49,19 @@ class SimpleAutoregressiveModel(torch.nn.Module):
         return block
 
     def forward(self, x):
-        raise NotImplementedError
+        return self.network(x)
 
+    def sample(self, batch_size):
+        sample = torch.zeros(
+            [batch_size, 1, self.L, self.L],
+            device=self.device
+        )
+        for i in range(self.L):
+            for j in range(self.L):
+                s_hat = self.forward(sample)
+                sample[:,:,i,j] = torch.bernoulli(s_hat[:, :, i, j])
+        return sample, s_hat
+    
 
 class MaskedLinear(torch.nn.Linear):
     def __init__(self, in_features: int, out_features: int, n: int, bias: bool = True, device=None, dtype=None) -> None:
