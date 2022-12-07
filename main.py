@@ -75,7 +75,7 @@ class Methods:
             the value of the loss function
         """
         energies = np.zeros((samples.shape[0], 1))
-
+    
         for idx in range(len(energies)):
             energies[idx] = self.energy(samples[idx, :])*P(samples[idx, :])
         
