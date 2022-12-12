@@ -5,16 +5,6 @@ from functools import reduce
 import operator as op
 
 def random_connected_graph(min_nbr_nodes: int,  max_nbr_nodes: int, seed = None) -> nx.Graph:
-    """
-    Creates a random graph which is connected. 
-    Params: 
-        min_nbr_nodes: int, the minimum nbr of nodes the graph should have
-        max_nbr_nodes: int, the maximum nbr of nodes the graph should have
-        seed: np.seed
-
-    Returns: 
-        G: nx.Graph
-    """
     G = nx.Graph()
 
     nbr_of_nodes = np.random.randint(min_nbr_nodes, max_nbr_nodes + 1)
@@ -71,16 +61,6 @@ def random_hamiltonian_graph(G: nx.Graph) -> nx.Graph:
     return G
 
 def assign_random_weights(G: nx.Graph, max_edge_weight: int) -> nx.Graph:
-    """
-    Assigns random edge weights to graph G. Weights range from 1 to max_edge_weight
-
-    Params:
-        G: nx.Graph
-        max_edge_weight: int
-
-    Returns: 
-        nx.Graph (weighted graph)
-    """
     edges = list(nx.edges(G))
 
     for edge in edges:
@@ -98,3 +78,41 @@ def ncr(n, r):
     numer = reduce(op.mul, range(n, n-r, -1), 1)
     denom = reduce(op.mul, range(1, r+1), 1)
     return numer // denom
+
+# G = random_connected_graph(3, 8)
+# G = random_hamiltonian_graph(G)
+# G.name = "Hamiltonian Graph"
+
+
+G = nx.Graph()
+G.add_nodes_from(range(5))
+G.add_edge(0, 1)
+G.add_edge(0, 2)
+G.add_edge(0, 3)
+G.add_edge(0, 4)
+
+G = assign_random_weights(G, 10)
+
+print(G.get_edge_data(1, 2, 'weight'))
+
+# a = G.get_edge_data(0, 1)['weight']
+# print(a)
+# print(type(a))
+
+# a = nx.get_edge_attributes(G, 'weight')
+# print(a)
+# print(type(a))
+
+# b = sum(a.values())
+# print("Edge weight sum:", b)
+
+# deg = list(nx.edges(G))
+# print(deg)
+# print(type(deg))
+
+# seed = 31
+# pos = nx.spring_layout(G, seed=seed)
+# labels = nx.get_edge_attributes(G, 'weight')
+# nx.draw_networkx(G, pos=pos)
+# nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+# plt.show()
