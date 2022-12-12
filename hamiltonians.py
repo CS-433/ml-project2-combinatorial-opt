@@ -2,9 +2,6 @@ import torch
 import numpy as np
 from numpy import random
 import networkx as nx
-from functools import reduce
-import operator as op
-from graphs import random_connected_graph, random_hamiltonian_graph, assign_random_weights
 
 def create_J_tensor(G: nx.Graph, A: float, B: float, C: float) -> torch.Tensor:
     """
@@ -45,5 +42,27 @@ def create_h_matrix(G: nx.Graph, A: float, B: float, C: float) -> torch.Tensor:
     h = torch.tensor(h, requires_grad=True)
     return h
 
-def tsp_hamiltonian(sample: torch.Tensor):
-    pass
+def tsp_hamiltonian(sample: torch.Tensor, G: nx.Graph, A: float, B: float, C: float):
+    """
+    Returns the Hamiltonian for the Travelling Salesman Problem given a sample
+    
+    Params:
+        sample: torch.Tensor,   the sample to calculate the hamiltonian for
+        G: nx.Graph,            the graph
+        A: float                hyperparam
+        B: float                hyperparam
+        C: float                hyperparam
+    Returns:
+        output: float,          the energy of the state (sample)
+    """
+    output = 0
+    n = G.order()
+    J = create_J_tensor(G, A, B, C)
+    h = create_h_matrix(G, A, B, C)
+    for i in range(n):
+        for j in range(n):
+            for k in range(n):
+                for l in range(n):
+                    output += J[i, j, k, l]*sample[i, k]*sample[j, l] + h[i, k]*sample[i, k]
+
+    return output
