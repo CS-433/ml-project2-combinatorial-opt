@@ -42,7 +42,7 @@ class AutoRegressiveCNN(nn.Module):
                 1,
                 1 if self.net_depth == 1 else self.net_width,
                 exclusive=True,
-                kernel_size=3
+                kernel_size=1
             )
         )
         for _ in range(self.net_depth-2):
@@ -50,9 +50,9 @@ class AutoRegressiveCNN(nn.Module):
         layers.append(nn.ReLU())
         layers.append(MaskedConv(
             self.net_width,
-            self.net_width,
+            1,
             exclusive=True,
-            kernel_size=3
+            kernel_size=1
         ))
         layers.append(nn.Sigmoid())
         self.net = nn.Sequential(*layers)
@@ -69,9 +69,7 @@ class AutoRegressiveCNN(nn.Module):
         )
         for i in range(self.L):
             for j in range(self.L):
-                print("sample size:", sample.size())
                 s_hat = self.forward(sample)
-                print("s_hat size:", s_hat.size())
                 sample[:, :, i, j] = torch.bernoulli(
                     s_hat[:, :, i, j]).to(torch.float64) * 2 - 1
         return s_hat, sample
@@ -93,7 +91,7 @@ class AutoRegressiveCNN(nn.Module):
         layers = []
         layers.append(nn.ReLU())
         layers.append(
-            MaskedConv(self.net_width, self.net_width, exclusive=True, kernel_size=3)
+            MaskedConv(self.net_width, self.net_width, exclusive=True, kernel_size=1)
         )
         block = nn.Sequential(*layers)
         return block
@@ -104,7 +102,7 @@ class AutoRegressiveCNN(nn.Module):
             nn.ReLU()
         )
         layers.append(
-            MaskedConv(self.net_width, self.net_width, exclusive=False, kernel_size=3)
+            MaskedConv(self.net_width, self.net_width, exclusive=False, kernel_size=1)
         )
         block = nn.Sequential(*layers)
         return block

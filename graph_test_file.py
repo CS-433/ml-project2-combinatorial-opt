@@ -5,6 +5,7 @@ from functools import reduce
 import operator as op
 
 def random_connected_graph(min_nbr_nodes: int,  max_nbr_nodes: int, seed = None) -> nx.Graph:
+    np.random.seed(seed)
     G = nx.Graph()
 
     nbr_of_nodes = np.random.randint(min_nbr_nodes, max_nbr_nodes + 1)
@@ -79,21 +80,23 @@ def ncr(n, r):
     denom = reduce(op.mul, range(1, r+1), 1)
     return numer // denom
 
-# G = random_connected_graph(3, 8)
-# G = random_hamiltonian_graph(G)
-# G.name = "Hamiltonian Graph"
+seed = 0
+
+G = random_connected_graph(8, 9, seed)
+G = random_hamiltonian_graph(G)
+G.name = "Hamiltonian Graph"
 
 
-G = nx.Graph()
-G.add_nodes_from(range(5))
-G.add_edge(0, 1)
-G.add_edge(0, 2)
-G.add_edge(0, 3)
-G.add_edge(0, 4)
+# G = nx.Graph()
+# G.add_nodes_from(range(5))
+# G.add_edge(0, 1)
+# G.add_edge(0, 2)
+# G.add_edge(0, 3)
+# G.add_edge(0, 4)
 
 G = assign_random_weights(G, 10)
 
-print(G.get_edge_data(1, 2, 'weight'))
+# print(G.get_edge_data(1, 2, 'weight'))
 
 # a = G.get_edge_data(0, 1)['weight']
 # print(a)
@@ -110,9 +113,8 @@ print(G.get_edge_data(1, 2, 'weight'))
 # print(deg)
 # print(type(deg))
 
-# seed = 31
-# pos = nx.spring_layout(G, seed=seed)
-# labels = nx.get_edge_attributes(G, 'weight')
-# nx.draw_networkx(G, pos=pos)
-# nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
-# plt.show()
+pos = nx.spring_layout(G, seed=seed)
+labels = nx.get_edge_attributes(G, 'weight')
+nx.draw_networkx(G, pos=pos)
+nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+plt.show()

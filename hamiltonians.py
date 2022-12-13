@@ -37,11 +37,11 @@ def create_h_matrix(G: nx.Graph, A: float, B: float, C: float) -> torch.Tensor:
     Creates the matrix h in the Hamiltonian for the Travelling Salesman Problem (Ising Model)
     """
     n = G.order()
+    h = torch.zeros(size=[n, n])
+
     weights = nx.get_edge_attributes(G, 'weight').values()
     W = sum(weights)
-
-    h = (A / 2) * W + (n-2) * B / 2 + (n-2) * C / 2
-    h = torch.tensor(h)
+    h = h + (A / 2) * W + (n-2) * B / 2 + (n-2) * C / 2
     return h
 
 def tsp_hamiltonian(sample: torch.Tensor, J: torch.Tensor, h: torch.Tensor):
@@ -56,11 +56,11 @@ def tsp_hamiltonian(sample: torch.Tensor, J: torch.Tensor, h: torch.Tensor):
         output: float,          the energy of the state (sample)
     """
     output = 0
-    n = J.size[0]
+    n = J.size(dim=0)
     for i in range(n):
         for j in range(n):
             for k in range(n):
                 for l in range(n):
-                    output += J[i, j, k, l]*sample[i, k]*sample[j, l] + h[i, k]*sample[i, k]
+                    output += J[i, j, k, l]*sample[:, :, i, k]*sample[:, :, j, l] + h[i, k]*sample[:, :, i, k]
 
     return output

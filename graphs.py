@@ -15,6 +15,7 @@ def random_connected_graph(min_nbr_nodes: int,  max_nbr_nodes: int, seed = None)
     Returns: 
         G: nx.Graph
     """
+    np.random.seed(seed)
     G = nx.Graph()
 
     nbr_of_nodes = np.random.randint(min_nbr_nodes, max_nbr_nodes + 1)
