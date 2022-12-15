@@ -1,18 +1,19 @@
 import torch
 from conv_net_implementation import AutoRegressiveCNN
+from neural_net_implementation import SimpleAutoregressiveModel
 from hamiltonians import *
 from graphs import *
 import matplotlib.pyplot as plt
 
 #Hyperparams and kwargs
-A = 8
+A = 0.1
 B = 5000
 C = 1000
 D = 1000
 
-max_iters = 500
-batch_size = 10
-beta = 100
+max_iters = 100
+batch_size = 100
+beta = 1000
 
 seed = 0
 
@@ -26,9 +27,16 @@ J = create_J_tensor(G, A, B, C, D)
 h = create_h_matrix(G, A, B, C)
 
 # Create Neural Net
-vars = {'L': G.order(), 'net_depth': 7, 'net_width': 5, 'half_kernel_size': 3, 'bias': 0.5, 'epsilon': 0.00001, 'device': 'cpu'}
+net = 'linear'
 
-net = AutoRegressiveCNN(**vars)
+if net == 'linear':
+    vars = {'L': G.order(), 'n': batch_size, 'net_width': G.order()**2, 'net_depth': 5, 'epsilon': 0.00001, 'device': 'cpu'}
+    net = SimpleAutoregressiveModel(**vars)
+
+elif net == 'conv':
+    vars = {'L': G.order(), 'net_depth': 7, 'net_width': 5, 'half_kernel_size': 3, 'bias': 0.5, 'epsilon': 0.00001, 'device': 'cpu'}
+    net = AutoRegressiveCNN(**vars)
+
 optimizer = torch.optim.Adam(net.parameters())
 losses = []
 for count in range(max_iters):
@@ -49,7 +57,7 @@ for count in range(max_iters):
 
     loss_reinforce = torch.mean((loss - loss.mean()) * log_prob)
     loss_reinforce.backward()
-
+    losses.append(loss_reinforce.data)
     optimizer.step()
 
     if count % 50 == 0:
@@ -58,12 +66,15 @@ for count in range(max_iters):
         print('Log-prob:', log_prob)
 
 
-s_hat, sample = net.sample(4)
-
+s_hat, sample = net.sample(100)
+r = torch.randint(0, 99, size=[1])
+sample = sample[r, :, :, :]
+s_hat = s_hat[r, :, :, :]
 print("Final Samples:", sample)
 print("Final s_hat", s_hat)
 
-# plt.plot(range(max_iters), losses)
-# plt.xlabel('Step')
-# plt.ylabel('Loss')
-# plt.title('Loss at Training step i')
+plt.plot(range(max_iters), losses)
+plt.xlabel('Step')
+plt.ylabel('Loss')
+plt.title('Loss at Training step i')
+plt.show() 
