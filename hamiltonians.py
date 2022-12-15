@@ -17,7 +17,7 @@ def create_J_tensor(G: nx.Graph, A: float, B: float, C: float, D: float) -> torc
                     if ((i == j + 1) or 
                     (j == i + 1) or 
                     (i == 0 and j == n-1) or 
-                    (j == 1 and i == n-1)):
+                    (j == 0 and i == n-1)):
                         if k != l:
                             if G.has_edge(k, l):
                                 W = G.get_edge_data(k, l)['weight']

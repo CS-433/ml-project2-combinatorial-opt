@@ -19,4 +19,5 @@ G = assign_random_weights(G, 40)
 J = create_J_tensor(G, A, B, C, D)
 h = create_h_matrix(G, A, B, C)
 
-print(h[1, 1], h[1, 2])
+print(J[1, 2, :, :])
+print(J[1, 1, :, :])
