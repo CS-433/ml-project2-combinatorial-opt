@@ -3,36 +3,36 @@ from torch import nn
 import numpy as np
 
 class MaskedConv(nn.Conv2d):
-    def __init__(self, *args, **kwargs):
-        self.exclusive = kwargs.pop('exclusive')
-        super().__init__(*args, **kwargs)
-
-        _, _, kh, kw = self.weight.shape
-        self.register_buffer('mask', torch.ones([kh, kw]))
-        self.mask[kh // 2, kw // 2 + (not self.exclusive):] = 0
-        self.mask[kh // 2 + 1:] = 0
+    def __init__(self, in_channels: int, out_channels: int, exclusive: bool, kernel_size: int, stride: int = 1, padding: int = 0, dilation: int = 1, groups: int = 1, bias: bool = True, padding_mode: str = 'zeros', device=None, dtype=None) -> None:
+        super(MaskedConv, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias, padding_mode, device, dtype)
+        self.exclusive = exclusive
+        self.mask = self.create_mask(self.exclusive)
         self.weight.data *= self.mask
+    
+    def create_mask(self, exclusive: bool) -> torch.Tensor:
+        _, _, h, w = self.weight.shape 
+        mask = torch.ones(size=[h, w])
+        if exclusive:
+            mask = torch.triu(mask)
+        else:
+            mask = torch.triu(mask, diagonal=1)
 
-        # Correction to Xavier initialization
-        self.weight.data *= torch.sqrt(self.mask.numel() / self.mask.sum())
+        return mask
     
     def forward(self, x):
         y = nn.functional.conv2d(x, self.mask * self.weight, self.bias,
                                     self.stride, self.padding, self.dilation,
                                     self.groups)
 
-        # print("####### MaskedConv.forward")
-        # print("x", x.shape, x)
-        # print("mask", self.mask.shape, self.mask)
-        # print("weight", self.weight.shape, self.weight)
-        # print("bias", self.bias.shape, self.bias)
-        # print("y", y.shape, y)
-        # print()
+        print("####### Start forward")
+        print("x", x.shape, x)
+        print("mask", self.mask.shape, self.mask)
+        print("weight", self.weight.shape, self.weight)
+        print("bias", self.bias.shape, self.bias)
+        print("y", y.shape, y)
+        print()
         return y
 
-    def extra_repr(self):
-        return (super(MaskedConv, self).extra_repr() +
-                ', exclusive={exclusive}'.format(**self.__dict__))
 
     
 class AutoRegressiveCNN(nn.Module):
@@ -41,12 +41,10 @@ class AutoRegressiveCNN(nn.Module):
         self.L = kwargs['L']
         self.net_depth = kwargs['net_depth']
         self.net_width = kwargs['net_width']
-        self.kernel_size = kwargs['kernel_size']
+        self.half_kernel_size = kwargs['half_kernel_size']
         self.bias = kwargs['bias']
         self.epsilon = kwargs['epsilon']
         self.device = kwargs['device']
-
-        self.padding = (self.kernel_size - 1) // 2
 
         layers = []
         layers.append(
@@ -54,8 +52,8 @@ class AutoRegressiveCNN(nn.Module):
                 1,
                 1 if self.net_depth == 1 else self.net_width,
                 exclusive=True,
-                kernel_size=self.kernel_size,
-                padding=self.padding
+                kernel_size=3,
+                padding=1
             )
         )
         for _ in range(self.net_depth-2):
@@ -65,20 +63,19 @@ class AutoRegressiveCNN(nn.Module):
             self.net_width,
             1,
             exclusive=False,
-            kernel_size=self.kernel_size,
-            padding=self.padding
+            kernel_size=3,
+            padding=1
         ))
         layers.append(nn.Sigmoid())
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):
         s_hat = self.net(x)
-        # print("###### AutoRegressiveCNN.forward")
         # print("x:", x.size())
         # print("x:", x)
+
         # print("S_hat:", s_hat.size())
         # print("S_hat:", s_hat)
-        # print()
         return s_hat
 
     def sample(self, batch_size):
@@ -106,17 +103,22 @@ class AutoRegressiveCNN(nn.Module):
 
         return log_prob
 
+    def build_exclusive_block(self):
+        layers = []
+        layers.append(nn.ReLU())
+        layers.append(
+            MaskedConv(self.net_width, self.net_width, exclusive=True, kernel_size=1)
+        )
+        block = nn.Sequential(*layers)
+        return block
+
     def build_block(self):
         layers = []
         layers.append(
             nn.ReLU()
         )
         layers.append(
-            MaskedConv(self.net_width, self.net_width, exclusive=False, kernel_size=self.kernel_size,
-                padding=self.padding)
+            MaskedConv(self.net_width, self.net_width, exclusive=False, kernel_size=1)
         )
         block = nn.Sequential(*layers)
         return block
-
-
-        
