@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from functools import reduce
 import operator as op
+from hamiltonians import *
 
 def random_connected_graph(min_nbr_nodes: int,  max_nbr_nodes: int, seed = None) -> nx.Graph:
     np.random.seed(seed)
@@ -82,7 +83,7 @@ def ncr(n, r):
 
 seed = 0
 
-G = random_connected_graph(8, 9, seed)
+G = random_connected_graph(2, 2, seed)
 G = random_hamiltonian_graph(G)
 G.name = "Hamiltonian Graph"
 
@@ -113,6 +114,7 @@ G = assign_random_weights(G, 10)
 # print(deg)
 # print(type(deg))
 
+energy = tsp_hamiltonian(sample, J, h)
 pos = nx.spring_layout(G, seed=seed)
 labels = nx.get_edge_attributes(G, 'weight')
 nx.draw_networkx(G, pos=pos)

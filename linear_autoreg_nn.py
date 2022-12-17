@@ -1,6 +1,7 @@
 import torch
 from numpy import log
 from torch import nn
+from sample_step import sample_step
 
 class MaskedLinear(nn.Linear):
     def __init__(self, in_channels, out_channels, n, bias, exclusive):
@@ -143,10 +144,14 @@ class MADE(nn.Module):
             dtype=torch.float32,
             device=self.device)
         for i in range(self.L):
-            for j in range(self.L):
-                x_hat = self.forward(sample)
-                sample[:, :, i, j] = torch.bernoulli(
-                    x_hat[:, :, i, j]).to(torch.float32) * 2 - 1
+            #regular
+            # for j in range(self.L):
+            #     x_hat = self.forward(sample)
+            #     sample[:, :, i, j] = torch.bernoulli(
+            #         x_hat[:, :, i, j]).to(torch.float32) * 2 - 1
+            # #tsp
+            x_hat = self.forward(sample)
+            sample[:, :, i, :] = sample_step(x_hat[:, :, i, :])
 
         if self.z2:
             # Binary random int 0/1

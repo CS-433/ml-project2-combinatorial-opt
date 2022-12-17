@@ -3,33 +3,54 @@ import numpy as np
 from numpy import random
 import networkx as nx
 
+def create_J_and_h(G: nx.Graph, A: float, B: float, C: float, D: float) -> torch.Tensor:
+    n = G.order()
+    J = torch.zeros(size = [n, n, n, n])
+    weights = nx.get_edge_attributes(G, 'weight').values()
+    h = sum(weights) + D*(n-len(weights)) + (B+C)*(n-2)/2 
+    for i in range(n):
+        for j in range(n):
+            for k in range(n):
+                for l in range(n):
+                    if i == (j+1)%n or i == (j-1)%n:
+                        if k != l:
+                            W = G.get_edge_data(k, l)['weight'] if G.has_edge(k, l) else D
+                            J[i,k,j,l] = W*A/8
+                    elif i==j and k!=l:
+                        J[i,k,j,l] = B/4
+                    elif i!=j and k==l:
+                        J[i,k,j,l] = C/4
+                    elif i==j and k==l:
+                        J[i,k,j,l] = (B+C)/4
+    return J,h
+
+                        
 def create_J_tensor(G: nx.Graph, A: float, B: float, C: float, D: float) -> torch.Tensor:
     """
     Creates the tensor J in the Hamiltonian for Travelling Salesman Problem (Ising Model)
     """
     n = G.order()
     J = torch.zeros(size = [n, n, n, n])
-    J.to_sparse()
+    #J.to_sparse()
     for i in range(n):
         for j in range(n):
             for k in range(n):
                 for l in range(n):
-                    if ((i == j + 1) or 
-                    (j == i + 1) or 
-                    (i == 0 and j == n-1) or 
-                    (j == 0 and i == n-1)):
+                    if ((i == j + 1) or (j == i + 1) or 
+                        (i == 0 and j == n-1) or 
+                        (j == 0 and i == n-1)):
                         if k != l:
                             if G.has_edge(k, l):
                                 W = G.get_edge_data(k, l)['weight']
                             else:
                                 W = D
                             J[i, j, k, l] = (A / 8) * W
-                    elif i == j and k != l:
-                        J[i, j, k, l] = B / 4
-                    elif k == l and i != j:
-                        J[i, j, k, l] = C / 4
-                    elif i == j and k == l:
-                        J[i, j, k, l] = (B + C) / 4
+                    if i == j and k != l:
+                        J[i, j, k, l] += B / 4
+                    if i == j and k == l:
+                        J[i, j, k, l] += (B + C) / 4
+                    if k == l and i != j:
+                        J[i, j, k, l] += C / 4
     return J
 
 def create_h_matrix(G: nx.Graph, A: float, B: float, C: float) -> torch.Tensor:
@@ -64,3 +85,6 @@ def tsp_hamiltonian(sample: torch.Tensor, J: torch.Tensor, h: torch.Tensor):
                     output += J[i, j, k, l]*sample[:, :, i, k]*sample[:, :, j, l] + h[i, k]*sample[:, :, i, k]
 
     return output
+
+def simple_ising_energy(sample):
+    pass

@@ -4,18 +4,19 @@ from neural_net_implementation import SimpleAutoregressiveModel
 from linear_autoreg_nn import MADE
 from hamiltonians import *
 from graphs import *
+from test import *
 import matplotlib.pyplot as plt
 
 #Hyperparams and kwargs
-A = 0.1
-B = 5000
-C = 1000
-D = 1000
+A = 0.1     #Vikt
+B = 1000    #Same row -> Multiple cities for one step 
+C = 3000    #Same col -> City visited multiple times
+D = 1000    
 
-max_iters = 100
+max_iters = 20000
 batch_size = 100
-beta = 100
-dim = 4
+beta = 1
+dim = 2
 seed = 0
 kernel_height = 5
 
@@ -27,6 +28,9 @@ G = assign_random_weights(G, 40)
 # Create Tensors/Matrices
 J = create_J_tensor(G, A, B, C, D)
 h = create_h_matrix(G, A, B, C)
+
+J_test = torch.rand(dim,dim)
+h_test = torch.zeros(dim)
 
 # Create Neural Net
 net = 'made'
@@ -45,10 +49,13 @@ elif net == 'made':
     vars = {'L': G.order(), 'net_depth': 5, 'net_width': 16, 'bias': 0.5, 'z2': False, 'res_block': True, 'x_hat_clip': False, 'device': 'cpu', 'epsilon': 0.00001}
     net = MADE(**vars)
 
-optimizer = torch.optim.SGD(net.parameters(), lr=1e-3)
+
+optimizer = torch.optim.SGD(net.parameters(), lr=1e-2)
+#optimizer = torch.optim.Adam(net.parameters())
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, factor=0.92, patience=100, threshold=1e-4, min_lr=1e-7)
 losses = []
+losses2 = []
 grads = []
 for count in range(max_iters):
     optimizer.zero_grad()
@@ -61,18 +68,20 @@ for count in range(max_iters):
     log_prob = net.log_prob(sample)
 
     with torch.no_grad():
-        # energy = tsp_hamiltonian(sample, J, h)
+       # energy = tsp_hamiltonian(sample, J, h)
 
-        # Simple Ising
+       # Simple Ising
         x1 = torch.roll(sample, 1, 2)
         x2 = torch.roll(sample, 1, 3)
-        energy = -sample * (x1 + x2)
+        energy = sample * (x1 + x2)
         energy = energy.sum(dim=(2, 3)).squeeze(dim=1)
+
+        #energy = energy_func(J_test, h_test, sample)
         # print("sample", sample.shape, sample)
         # print("log_prob", log_prob.shape, log_prob)
         # print("energy", energy.shape, energy)
-
-        loss = log_prob + beta*energy
+        loss = beta*energy + log_prob
+        #print(loss)
     assert not energy.requires_grad
     assert not loss.requires_grad
 
@@ -82,24 +91,26 @@ for count in range(max_iters):
         pass
       #  grads.append(torch.norm(loss_reinforce.grad))
     losses.append(loss_reinforce.data)
+    losses2.append(loss.mean())
     optimizer.step()
 
-    if count % 50 == 0:
+    if count % 100 == 0:
         print(f"Training loop {count} / {max_iters}")
         print('Loss:', loss_reinforce, "\n")
         # print('Log-prob:', log_prob)
 
-
 s_hat, sample = net.sample(batch_size)
 
 # exit()
-r = torch.randint(0, batch_size, size=[1])
+r = torch.randint(0, batch_size, size=[3])
 sample = sample[r, :, :, :]
 s_hat = s_hat[r, :, :, :]
 print("Final Samples:", sample)
 print("Final s_hat", s_hat)
 #print(grads)
 plt.plot(range(max_iters), losses)
+plt.plot(range(max_iters), losses2)
+plt.legend(['loss1', 'loss2'])
 plt.xlabel('Step')
 plt.ylabel('Loss')
 plt.title('Loss at Training step i')
