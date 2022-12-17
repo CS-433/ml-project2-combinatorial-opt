@@ -130,6 +130,13 @@ class MADE(nn.Module):
         # Force the first x_hat to be 0.5
         if self.bias and not self.z2:
             x_hat = x_hat * self.x_hat_mask + self.x_hat_bias
+        
+        print("###### MADE.forward")
+        print("x:", x.size())
+        print("x:", x)
+        print("S_hat:", x_hat.size())
+        print("S_hat:", x_hat)
+        print()
 
         return x_hat
 
@@ -144,14 +151,14 @@ class MADE(nn.Module):
             dtype=torch.float32,
             device=self.device)
         for i in range(self.L):
-            #regular
-            # for j in range(self.L):
-            #     x_hat = self.forward(sample)
-            #     sample[:, :, i, j] = torch.bernoulli(
-            #         x_hat[:, :, i, j]).to(torch.float32) * 2 - 1
+           # regular
+            for j in range(self.L):
+                x_hat = self.forward(sample)
+                sample[:, :, i, j] = torch.bernoulli(
+                    x_hat[:, :, i, j]).to(torch.float32) * 2 - 1
             # #tsp
-            x_hat = self.forward(sample)
-            sample[:, :, i, :] = sample_step(x_hat[:, :, i, :])
+            # x_hat = self.forward(sample)
+            # sample[:, :, i, :] = sample_step(x_hat[:, :, i, :])
 
         if self.z2:
             # Binary random int 0/1
