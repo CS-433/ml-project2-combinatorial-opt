@@ -130,13 +130,6 @@ class MADE(nn.Module):
         # Force the first x_hat to be 0.5
         if self.bias and not self.z2:
             x_hat = x_hat * self.x_hat_mask + self.x_hat_bias
-        
-        print("###### MADE.forward")
-        print("x:", x.size())
-        print("x:", x)
-        print("S_hat:", x_hat.size())
-        print("S_hat:", x_hat)
-        print()
 
         return x_hat
 
@@ -168,7 +161,7 @@ class MADE(nn.Module):
                 device=sample.device) * 2 - 1
             sample *= flip
 
-        return sample, x_hat
+        return x_hat, sample
 
     def _log_prob(self, sample, x_hat):
         mask = (sample + 1) / 2

@@ -96,6 +96,9 @@ class MeanFieldModel:
             ) / samples.shape[0]
 
     def gradient_descent(self, param, nbr_steps, learning_rate):
+        """
+        Runs gradient descent
+        """
         loss = []
         for i in range(nbr_steps):
             grad_loss = self.grad_loss(param).reshape((self.dim,1))
@@ -117,5 +120,5 @@ def main():
     print(f"Theta: {np.round(final_thetas.T/np.pi, 2)}*pi")
     print(f"Loss: {m.loss(final_thetas)}")
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()

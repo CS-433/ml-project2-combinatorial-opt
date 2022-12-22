@@ -8,22 +8,32 @@ from test import *
 import matplotlib.pyplot as plt
 
 #Hyperparams and kwargs
-A = 0.1     #Vikt
-B = 1000    #Same row -> Multiple cities for one step 
-C = 3000    #Same col -> City visited multiple times
-D = 1000    
+A = 0.1   # Constant to multiply edge weights with
+B = 10    # Punishes multiple cities for one step 
+C = 30    # Punishes City visited multiple times
+D = 10
 
-max_iters = 20000
-batch_size = 100
-beta = 1
+ham = 'tsp' # or 'simple_ising'
+
+max_iters = 12000
+batch_size = 32
+beta_final = 10
+beta_anneal = 0.998
 dim = 2
 seed = 0
 kernel_height = 5
+
+# Plots
+plot_G = False
+plot_loss = True
 
 # Create Graph 
 G = random_connected_graph(dim, dim, seed)
 G = random_hamiltonian_graph(G)
 G = assign_random_weights(G, 40)
+
+if plot_G:
+    plot_graph(G, seed)
 
 # Create Tensors/Matrices
 J = create_J_tensor(G, A, B, C, D)
@@ -36,27 +46,20 @@ h_test = torch.zeros(dim)
 net = 'made'
 kernel_size = (kernel_height, dim)
 
-if net == 'linear':
-    vars = {'L': G.order(), 'n': batch_size, 'net_width': G.order()**2, 'net_depth': 5, 'epsilon': 0.00001, 'device': 'cpu'}
-    net = SimpleAutoregressiveModel(**vars)
-
-elif net == 'conv':
-    vars = {'L': G.order(), 'net_depth': 5, 'net_width': 16, 'kernel_size': 3, 'bias': 0.5, 'epsilon': 0.00001, 'device': 'cpu'}
+if net == 'conv':
+    vars = {'L': G.order(), 'net_depth': 2, 'net_width': 32, 'kernel_size': 3, 'bias': 0.5, 'epsilon': 0.00001, 'device': 'cpu'}
     net = AutoRegressiveCNN(**vars)
     print(net)
 
 elif net == 'made':
-    vars = {'L': G.order(), 'net_depth': 5, 'net_width': 16, 'bias': 0.5, 'z2': False, 'res_block': True, 'x_hat_clip': False, 'device': 'cpu', 'epsilon': 0.00001}
+    vars = {'L': G.order(), 'net_depth': 2, 'net_width': 4, 'bias': 0.5, 'z2': False, 'res_block': True, 'x_hat_clip': False, 'device': 'cpu', 'epsilon': 0.00001}
     net = MADE(**vars)
 
+optimizer = torch.optim.SGD(net.parameters(), lr=1e-5)
 
-optimizer = torch.optim.SGD(net.parameters(), lr=1e-2)
-#optimizer = torch.optim.Adam(net.parameters())
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, factor=0.92, patience=100, threshold=1e-4, min_lr=1e-7)
+re_losses = []
 losses = []
-losses2 = []
-grads = []
+
 for count in range(max_iters):
     optimizer.zero_grad()
 
@@ -68,50 +71,62 @@ for count in range(max_iters):
     log_prob = net.log_prob(sample)
 
     with torch.no_grad():
-       # energy = tsp_hamiltonian(sample, J, h)
+        if ham == 'tsp':
+            energy = tsp_hamiltonian(sample, J, h).squeeze()
 
-       # Simple Ising
-        x1 = torch.roll(sample, 1, 2)
-        x2 = torch.roll(sample, 1, 3)
-        energy = sample * (x1 + x2)
-        energy = energy.sum(dim=(2, 3)).squeeze(dim=1)
+        elif ham == 'simple_ising':
+            # Simple Ising
+            x1 = torch.roll(sample, 1, 2)
+            x2 = torch.roll(sample, 1, 3)
+            energy = sample * (x1 + x2)
+            energy = energy.sum(dim=(2, 3)).squeeze(dim=1)
 
-        #energy = energy_func(J_test, h_test, sample)
-        # print("sample", sample.shape, sample)
-        # print("log_prob", log_prob.shape, log_prob)
-        # print("energy", energy.shape, energy)
+        else:
+            print("Unknown Hamiltonian")
+
+        beta = beta_final#*(1 - beta_anneal)**(count+1)
         loss = beta*energy + log_prob
-        #print(loss)
     assert not energy.requires_grad
     assert not loss.requires_grad
 
     loss_reinforce = torch.mean((loss - loss.mean()) * log_prob)
     loss_reinforce.backward()
-    if count % 100 == 0:
-        pass
-      #  grads.append(torch.norm(loss_reinforce.grad))
-    losses.append(loss_reinforce.data)
-    losses2.append(loss.mean())
+
+    re_losses.append(loss_reinforce.data)
+    losses.append(loss.mean())
     optimizer.step()
 
     if count % 100 == 0:
         print(f"Training loop {count} / {max_iters}")
         print('Loss:', loss_reinforce, "\n")
-        # print('Log-prob:', log_prob)
+
+    if loss_reinforce.data < -1000:
+        print("Sample:", sample)
+        break
 
 s_hat, sample = net.sample(batch_size)
 
-# exit()
 r = torch.randint(0, batch_size, size=[3])
 sample = sample[r, :, :, :]
 s_hat = s_hat[r, :, :, :]
 print("Final Samples:", sample)
 print("Final s_hat", s_hat)
-#print(grads)
-plt.plot(range(max_iters), losses)
-plt.plot(range(max_iters), losses2)
-plt.legend(['loss1', 'loss2'])
-plt.xlabel('Step')
-plt.ylabel('Loss')
-plt.title('Loss at Training step i')
-plt.show() 
+
+if plot_loss:
+    plt.plot(range(max_iters), re_losses)
+    plt.plot(range(max_iters), losses)
+    plt.legend(['loss_reinforce', 'loss'])
+    plt.xlabel('Step')
+    plt.ylabel('Loss')
+    if ham == 'tsp':
+        if net == 'conv':
+            plt.title('Loss at Training step i for AutoRegressiveCNN on TSP')
+        else:
+            plt.title('Loss at Training step i for MADE on TSP')
+
+    else:
+        if net == 'conv':
+            plt.title('Loss at Training step i for AutoRegressiveCNN on Simple Ising')
+        else:
+            plt.title('Loss at Training step i for MADE on Simple Ising')
+    plt.show()

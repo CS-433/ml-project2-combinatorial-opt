@@ -21,13 +21,6 @@ class MaskedConv(nn.Conv2d):
                                     self.stride, self.padding, self.dilation,
                                     self.groups)
 
-        # print("####### MaskedConv.forward")
-        # print("x", x.shape, x)
-        # print("mask", self.mask.shape, self.mask)
-        # print("weight", self.weight.shape, self.weight)
-        # print("bias", self.bias.shape, self.bias)
-        # print("y", y.shape, y)
-        # print()
         return y
 
     def extra_repr(self):
@@ -73,12 +66,6 @@ class AutoRegressiveCNN(nn.Module):
 
     def forward(self, x):
         s_hat = self.net(x)
-        # print("###### AutoRegressiveCNN.forward")
-        # print("x:", x.size())
-        # print("x:", x)
-        # print("S_hat:", s_hat.size())
-        # print("S_hat:", s_hat)
-        # print()
         return s_hat
 
     def sample(self, batch_size):

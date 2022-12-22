@@ -99,3 +99,13 @@ def ncr(n, r):
     numer = reduce(op.mul, range(n, n-r, -1), 1)
     denom = reduce(op.mul, range(1, r+1), 1)
     return numer // denom
+
+def plot_graph(G: nx.Graph, seed):
+    """
+    Plots graph G
+    """
+    pos = nx.spring_layout(G, seed=seed)
+    labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx(G, pos=pos)
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+    plt.show()
