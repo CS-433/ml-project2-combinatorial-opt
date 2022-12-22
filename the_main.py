@@ -1,6 +1,5 @@
 import torch
 from conv_net_implementation import AutoRegressiveCNN
-from neural_net_implementation import SimpleAutoregressiveModel
 from linear_autoreg_nn import MADE
 from hamiltonians import *
 from graphs import *
